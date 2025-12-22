@@ -1,0 +1,6 @@
+.env
+__pycache__/
+.pytest_cache/
+test_metrics.json
+test_summary.json
+
