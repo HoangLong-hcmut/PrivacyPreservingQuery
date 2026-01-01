@@ -33,5 +33,5 @@ def pytest_sessionfinish(session, exitstatus):
     import json
     TEST_METRICS['status'] = 'PASS' if exitstatus == 0 else 'FAIL'
     
-    with open('test_metrics.json', 'w') as f:
+    with open('test_report.json', 'w') as f:
         json.dump(TEST_METRICS, f, indent=4)

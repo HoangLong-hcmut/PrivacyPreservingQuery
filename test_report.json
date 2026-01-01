@@ -1,9 +1,0 @@
-{
-    "max_observed_sensitivity": 1.0,
-    "average_utility_loss_mae": 1.13,
-    "average_utility_loss_re_percent": 3.2285714284791838,
-    "status": "PASS",
-    "average_utility_loss_percent": 3.2285714284791838,
-    "budget_accounting_accuracy_percent": 100.0,
-    "attacker_simulations_status": "PASS"
-}

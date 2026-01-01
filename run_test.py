@@ -10,8 +10,8 @@ def main():
         
     # Generate Report
     try:
-        from src.utils import test_reporter
-        test_reporter.generate_report()
+        from src.main import generate_report
+        generate_report()
     except Exception as e:
         print(f"Error generating report: {e}")
 
