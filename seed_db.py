@@ -11,7 +11,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "password")
 DB_PORT = int(os.getenv("DB_PORT", 3306))
 
 def seed_database():
-    # Connect to MySQL server (no db selected yet)
+    # Connect to MySQL server
     conn = pymysql.connect(
         host=DB_HOST,
         user=DB_USER,
@@ -26,16 +26,18 @@ def seed_database():
             cursor.execute("CREATE DATABASE hospital_db")
             cursor.execute("USE hospital_db")
             
-            # Create Doctors Table
+            # Create Staff Table
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS doctors (
-                    doctor_id INT PRIMARY KEY,
+                CREATE TABLE IF NOT EXISTS staff (
+                    staff_id INT PRIMARY KEY,
+                    role VARCHAR(50),
                     national_id CHAR(12) UNIQUE,
                     full_name VARCHAR(100),
                     dob DATE,
                     gender VARCHAR(10),
                     address VARCHAR(255),
-                    specialization VARCHAR(100)
+                    specialization VARCHAR(100),
+                    privacy_budget FLOAT DEFAULT 10.0
                 )
             """)
 
@@ -56,24 +58,29 @@ def seed_database():
                 CREATE TABLE IF NOT EXISTS diagnoses (
                     diagnosis_id INT PRIMARY KEY,
                     patient_id INT,
-                    doctor_id INT,
+                    staff_id INT,
                     disease_name VARCHAR(100),
                     visit_date DATE,
                     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
-                    FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+                    FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
                 )
             """)
             
-            # Seed Doctors
-            doctors_data = [
-                (1, '001080000001', 'Dr. Nguyen Van A', '1980-01-15', 'M', '123 Le Loi, Hanoi', 'Cardiology'),
-                (2, '001082000002', 'Dr. Tran Thi B', '1982-05-20', 'F', '456 Nguyen Hue, HCM', 'Neurology'),
-                (3, '001075000003', 'Dr. Le Van C', '1975-11-10', 'M', '789 Tran Hung Dao, Da Nang', 'Pediatrics'),
-                (4, '001088000004', 'Dr. Pham Thi D', '1988-03-25', 'F', '321 Ba Trieu, Hanoi', 'Oncology'),
-                (5, '001090000005', 'Dr. Hoang Van E', '1990-09-05', 'M', '654 Le Duan, HCM', 'Dermatology')
+            # Seed Staff
+            # format: id, role, nid, name, dob, gender, address, spec, budget
+            staff_data = [
+                (1, 'doctor', '001080000001', 'Nguyen Van Minh', '1980-01-15', 'M', '123 Le Loi, Hanoi', 'Cardiology', 10.0),
+                (2, 'employee', '001082000002', 'Tran Thi Mai', '1982-05-20', 'F', '456 Nguyen Hue, HCM', 'Receptionist', 5.0),
+                (3, 'researcher', '001075000003', 'Le Van Hung', '1975-11-10', 'M', '789 Tran Hung Dao, Da Nang', 'Data Science', 20.0),
+                (4, 'manager', '001088000004', 'Pham Thi Lan', '1988-03-25', 'F', '321 Ba Trieu, Hanoi', 'Management', 100.0),
+                (5, 'doctor', '001085000005', 'Hoang Van Tien', '1985-09-09', 'M', '555 Giai Phong, Hanoi', 'Neurology', 10.0),
+                (6, 'employee', '001090000006', 'Nguyen Thi Hoa', '1990-12-12', 'F', '888 Lang, Hanoi', 'Cashier', 5.0),
+                (7, 'employee', '001092000007', 'Vu Van Nam', '1992-06-15', 'M', '222 Tay Son, Hanoi', 'Security', 2.0),
+                (8, 'doctor', '001078000008', 'Do Lan Huong', '1978-04-30', 'F', '101 Kim Ma, Hanoi', 'Pediatrics', 10.0),
+                (9, 'accounting', '001086000009', 'Le Thi Thu', '1986-07-20', 'F', '999 Giang Vo, Hanoi', 'Accountant', 5.0)
             ]
             
-            cursor.executemany("INSERT INTO doctors VALUES (%s, %s, %s, %s, %s, %s, %s)", doctors_data)
+            cursor.executemany("INSERT INTO staff VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", staff_data)
             
             # Seed Patients
             patients_data = [
