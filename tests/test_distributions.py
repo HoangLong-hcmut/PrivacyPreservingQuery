@@ -6,39 +6,27 @@ from src.db_connector import execute_query
 from src.pipeline.budget import BudgetExhaustedException
 
 def test_validate_laplace_distribution(budget_tracker):
-    user_id = "test_user_dist"
+    user_id = "researcher"
     query = "SELECT COUNT(*) FROM patients WHERE dob < '1975-01-01'"
     epsilon = 1.0
     
-    # Get True Value
+    # Retrieve true value for baseline
     raw_result = execute_query(query)
     true_value = list(raw_result[0].values())[0]
     
     # Generate samples
-    n_samples = 200 # Reduced for real DB performance
+    n_samples = 200
     samples = []
     
-    budget_tracker.EPSILON_TOTAL = float(n_samples * epsilon) + 100.0
+    # Ensure sufficient budget
+    execute_query("UPDATE staff SET privacy_budget = 1000.0 WHERE role = %s", (user_id,))
     
     with pytest.MonkeyPatch.context() as m:
         m.setattr("src.main.budget_tracker", budget_tracker)
         
-        # We need to disable rounding/clamping to test the raw noise distribution?
-        # The prompt says "Post-Process: Round/Clamp".
-        # If we round, it becomes discrete Laplace (Geometric).
-        # KS-test is for continuous distributions.
-        # If the output is rounded, KS-test against continuous Laplace might fail or be inaccurate.
-        # However, the prompt asks to "Validate Laplace Distribution" using KS-test.
-        # I should probably mock `post_process_result` to return the raw noisy value for this test,
-        # OR test against the discrete distribution.
-        # Given the prompt "Null Hypothesis: The samples are drawn from a Laplace distribution",
-        # I will mock `post_process_result` to return the raw value (skip rounding) for this test.
-        
+        # Mock post-processing to test raw continuous Laplace distribution (disabling rounding)
+        # The KS-test is designed for continuous distributions; rounding introduces discretization artifacts.
         with m.context() as m2:
-            # Mock post_process to return raw value
-            # We need to import the module where it is defined or used.
-            # It is used in src.main as dp_engine.post_process_result
-            # So we mock src.pipeline.dp_engine.post_process_result
             m2.setattr("src.pipeline.dp_engine.post_process_result", lambda val, type: val)
             
             for _ in range(n_samples):
@@ -46,14 +34,9 @@ def test_validate_laplace_distribution(budget_tracker):
                 val = list(result[0].values())[0]
                 samples.append(val)
 
-    # Statistical Test
-    # Laplace(loc=true_value, scale=1/epsilon)
-    # Scipy laplace uses loc and scale.
-    # Sensitivity is 1. Scale = 1/epsilon.
+    # Statistical Validation (Kolmogorov-Smirnov Test)
+    # Null Hypothesis: The samples follow a Laplace distribution (loc=true_value, scale=1/epsilon)
     scale = 1.0 / epsilon
-    
-    # KS Test
-    # We compare the samples against the CDF of the expected Laplace distribution
     ks_statistic, p_value = stats.kstest(samples, 'laplace', args=(true_value, scale))
     
     print(f"\nKS Statistic: {ks_statistic}")
@@ -64,10 +47,12 @@ def test_validate_laplace_distribution(budget_tracker):
     assert p_value > 0.05, f"Samples do not follow Laplace distribution (p={p_value})"
 
 def test_budget_accounting(budget_tracker):
-    user_id = "test_user_budget"
+    user_id = "doctor"
     query = "SELECT COUNT(*) FROM patients"
     epsilon_cost = 1.0
-    budget_tracker.EPSILON_TOTAL = 5.0
+    
+    # Set known budget
+    execute_query("UPDATE staff SET privacy_budget = 5.0 WHERE role = %s", (user_id,))
     
     with pytest.MonkeyPatch.context() as m:
         m.setattr("src.main.budget_tracker", budget_tracker)
@@ -76,8 +61,8 @@ def test_budget_accounting(budget_tracker):
         for i in range(5):
             execute_secure_query(query, user_id, epsilon_cost)
             expected_remaining = 5.0 - (i + 1) * epsilon_cost
-            current_usage = budget_tracker.usage.get(user_id, 0.0)
-            assert abs((5.0 - current_usage) - expected_remaining) < 1e-9
+            current_remaining = budget_tracker.get_budget(user_id)
+            assert abs(current_remaining - expected_remaining) < 1e-9
             
         # Run 6th query - should fail
         with pytest.raises(BudgetExhaustedException):

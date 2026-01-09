@@ -29,8 +29,6 @@ def calculate_sensitivity(query_type: str, bounds: tuple = None) -> float:
         lower, upper = bounds
         return float(upper - lower)
     else:
-        # Default or unknown, maybe raise error or assume high sensitivity?
-        # For this spec, let's raise.
         raise ValueError(f"Unsupported query type for sensitivity analysis: {query_type}")
 
 def add_noise(value: float, sensitivity: float, epsilon: float) -> float:

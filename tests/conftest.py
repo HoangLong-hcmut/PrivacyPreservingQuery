@@ -5,7 +5,7 @@ from src.pipeline.budget import BudgetTracker
 @pytest.fixture
 def dp_engine_fixed_seed():
     """
-    Sets a fixed seed for numpy before tests and resets after.
+    Ensure deterministic results by fixing the random seed.
     """
     np.random.seed(42)
     yield
@@ -14,7 +14,7 @@ def dp_engine_fixed_seed():
 @pytest.fixture
 def budget_tracker():
     """
-    Returns a fresh BudgetTracker with full budget.
+    Provide a fresh, isolated budget tracker instance.
     """
     tracker = BudgetTracker()
     return tracker
