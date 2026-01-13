@@ -2,8 +2,6 @@ import sqlglot
 from sqlglot import exp
 from src.pipeline import sanitizer, rewriter, privacy_guard, dp_engine, budget
 from src.db_connector import execute_query
-import json
-import os
 import sys
 
 # Global budget tracker instance
@@ -85,63 +83,6 @@ class PrivacyMiddleware:
 middleware = PrivacyMiddleware()
 middleware.budget_accountant = budget_tracker
 
-def generate_report():
-    report_file = 'test_report.json'
-    
-    if not os.path.exists(report_file):
-        print("Error: Report file not found. Please run the tests first using 'pytest'.")
-    # ... rest of report generation remains ...
-        
-    try:
-        with open(report_file, 'r') as f:
-            metrics = json.load(f)
-            
-        print("="*40)
-        print("PRIVACY FRAMEWORK TEST REPORT")
-        print("="*40)
-        
-        status = metrics.get('status', 'UNKNOWN')
-        print(f"Overall Status: {status}")
-        print("-" * 40)
-        
-        if 'average_utility_loss_mae' in metrics:
-            print(f"Average Utility Loss (MAE): {metrics['average_utility_loss_mae']:.4f}")
-            print(f"Average Utility Loss (RE):  {metrics['average_utility_loss_re_percent']:.2f}%")
-        else:
-            print("Utility metrics not found.")
-            
-        if 'max_observed_sensitivity' in metrics:
-            print(f"Max Observed Sensitivity:   {metrics['max_observed_sensitivity']}")
-        else:
-            print("Sensitivity metrics not found.")
-            
-        # Budget Accounting Accuracy is implicitly checked by the test passing.
-        # We can add a placeholder if needed, or just say "Verified" if status is PASS.
-        print(f"Budget Accounting:          {'Verified' if status == 'PASS' else 'Check Failures'}")
-        
-        print(f"Attacker Simulations:       {'Passed' if status == 'PASS' else 'Check Failures'}")
-        
-        print("="*40)
-        
-        # Save combined report to JSON
-        summary = {
-            "average_utility_loss_percent": metrics.get('average_utility_loss_re_percent'),
-            "max_observed_sensitivity": metrics.get('max_observed_sensitivity'),
-            "budget_accounting_accuracy_percent": 100.0 if status == 'PASS' else 0.0,
-            "attacker_simulations_status": "PASS" if status == 'PASS' else "FAIL"
-        }
-        
-        # Update metrics with summary fields for a single comprehensive report
-        metrics.update(summary)
-        
-        with open(report_file, 'w') as f:
-            json.dump(metrics, f, indent=4)
-            
-        print(f"Report saved to {report_file}")
-
-    except Exception as e:
-        print(f"Error generating report: {e}")
-
 def execute_secure_query(user_query: str, user_id: str, epsilon_cost: float):
     """
     Executes a secure SQL query via PrivacyMiddleware.
@@ -163,7 +104,7 @@ if __name__ == "__main__":
     from src.pipeline.privacy_guard import PrivacyViolationException
     from src.pipeline.budget import BudgetExhaustedException
 
-    parser = argparse.ArgumentParser(description="DataSHIELD Privacy Middleware CLI")
+    parser = argparse.ArgumentParser(description="DataSHIELD Secure Query Interface - Privacy-Preserving SQL Execution Engine")
     parser.add_argument("--role", type=str, default="cli_user", help="User ID / Role (default: cli_user)")
     parser.add_argument("--query", type=str, help="SQL Query to execute (if not provided, enters interactive mode)")
     parser.add_argument("--epsilon", type=float, default=1.0, help="Privacy Loss Budget (epsilon) cost (default: 1.0)")
@@ -181,8 +122,6 @@ if __name__ == "__main__":
             print("-" * 30)
             print(f"Result:         {response['result']}")
             print("-" * 30)
-            # Output JSON for easier parsing by other tools if needed? 
-            # For now, keeping human readable as requested previously.
         except Exception as e:
             print(f"(!) FAILED: {e}")
             sys.exit(1)
@@ -199,8 +138,10 @@ if __name__ == "__main__":
     
     while True:
         try:
-            budget_tracker.load_state()
-            print(f"\n[User: {current_user}] Budget Remaining: {max(0, 10.0 - budget_tracker.usage.get(current_user, 0.0)):.2f}")
+            # Check remaining budget directly from DB
+            remaining = budget_tracker.get_budget(current_user)
+            print(f"\n[User: {current_user}] Budget Remaining: {remaining:.2f}")
+            
             query = input("SQL > ").strip()
             
             if query.lower() in ('exit', 'quit'):
@@ -218,7 +159,7 @@ if __name__ == "__main__":
             # Execute
             try:
                 # We use the middleware directly to get detailed response
-                response = middleware.process_query(query, current_user, epsilon_cost=1.0)
+                response = middleware.process_query(query, current_user, epsilon_cost=args.epsilon)
                 
                 print("-" * 30)
                 print("PASSED")

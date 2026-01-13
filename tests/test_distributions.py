@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from scipy import stats
 from src.main import execute_secure_query
 from src.db_connector import execute_query
