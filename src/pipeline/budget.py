@@ -5,7 +5,7 @@ class BudgetExhaustedException(Exception):
 
 class BudgetAccountant:
     def __init__(self):
-        self.usage_cache = {}
+        pass
 
     def get_budget(self, user_role: str) -> float:
         """
