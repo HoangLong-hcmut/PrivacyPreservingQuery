@@ -70,13 +70,13 @@ def seed_database():
             
             # Seed Staff
             staff_data = [
-                (1, 'doctor', '001080000001', 'Nguyen Van Minh', '1980-01-15', 'M', '123 Le Loi, Hanoi', 'Cardiology', 10.0),
-                (2, 'employee', '001082000002', 'Tran Thi Mai', '1982-05-20', 'F', '456 Nguyen Hue, HCM', 'Receptionist', 5.0),
+                (1, 'doctor', '001080000001', 'Nguyen Van Minh', '1980-01-15', 'M', '123 Le Loi, Hanoi', 'Cardiology', 50.0),
+                (2, 'employee', '001082000002', 'Tran Thi Mai', '1982-05-20', 'F', '456 Nguyen Hue, HCM', 'Accountant', 5.0),
                 (3, 'researcher', '001075000003', 'Le Van Hung', '1975-11-10', 'M', '789 Tran Hung Dao, Da Nang', 'Data Science', 20.0),
                 (4, 'manager', '001088000004', 'Pham Thi Lan', '1988-03-25', 'F', '321 Ba Trieu, Hanoi', 'Management', 100.0),
                 (5, 'doctor', '001085000005', 'Hoang Van Tien', '1985-09-09', 'M', '555 Giai Phong, Hanoi', 'Neurology', 10.0),
                 (6, 'employee', '001090000006', 'Nguyen Thi Hoa', '1990-12-12', 'F', '888 Lang, Hanoi', 'Cashier', 5.0),
-                (7, 'employee', '001092000007', 'Vu Van Nam', '1992-06-15', 'M', '222 Tay Son, Hanoi', 'Security', 2.0),
+                (7, 'employee', '001092000007', 'Vu Van Nam', '1992-06-15', 'M', '222 Tay Son, Hanoi', 'Security', 0.0),
                 (8, 'doctor', '001078000008', 'Do Lan Huong', '1978-04-30', 'F', '101 Kim Ma, Hanoi', 'Pediatrics', 10.0),
                 (9, 'employee', '001086000009', 'Le Thi Thu', '1986-07-20', 'F', '999 Giang Vo, Hanoi', 'Accountant', 5.0)
             ]
@@ -84,30 +84,34 @@ def seed_database():
             cursor.executemany("INSERT INTO staff (staff_id, role, national_id, full_name, dob, gender, address, specialization, privacy_budget) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", staff_data)
             
             # Seed Patients
-            patients_data = [
-                (1, '001200000001', 'Nguyen Van An', '2000-01-01', 'M', '101 Pho Hue, Hanoi'),
-                (2, '001201000002', 'Tran Thi Binh', '2001-02-02', 'F', '202 Hai Ba Trung, HCM'),
-                (3, '001199000003', 'Le Van Cuong', '1999-03-03', 'M', '303 Nguyen Trai, Hanoi'),
-                (4, '001198000004', 'Pham Thi Dung', '1998-04-04', 'F', '404 Le Lai, HCM'),
-                (5, '001195000005', 'Hoang Van Em', '1995-05-05', 'M', '505 Tran Phu, Da Nang'),
-                (6, '001190000006', 'Vu Thi F', '1990-06-06', 'F', '606 Nguyen Van Linh, Da Nang'),
-                (7, '001185000007', 'Dang Van G', '1985-07-07', 'M', '707 Dien Bien Phu, HCM'),
-                (8, '001180000008', 'Bui Thi H', '1980-08-08', 'F', '808 Xa Dan, Hanoi'),
-                (9, '001175000009', 'Do Van I', '1975-09-09', 'M', '909 Lang Ha, Hanoi'),
-                (10, '001170000010', 'Ngo Thi K', '1970-10-10', 'F', '010 Nguyen Chi Thanh, Hanoi')
-            ]
-            
-            for i in range(11, 60):
-                gender = 'M' if i % 2 == 0 else 'F'
-                year = 1950 + (i % 40)
-                dob = f"{year}-01-01"
+            patients_data = []
+
+            # Group 1: Seniors (Age 75) - 20 people
+            # IDs 1-20. Born 1950.
+            for i in range(1, 21):
                 patients_data.append((
-                    i, 
-                    f"001{year}000{i:02d}", 
-                    f"Patient {i}", 
-                    dob, 
-                    gender, 
-                    f"{i} Random St"
+                    i, f"0011950000{i:02d}", f"Senior Patient {i}", "1950-06-01", 'M' if i%2==0 else 'F', "Nursing Home A"
+                ))
+
+            # Group 2: Adults (Age 45) - 20 people
+            # IDs 21-40. Born 1980.
+            for i in range(21, 41):
+                patients_data.append((
+                    i, f"0011980000{i:02d}", f"Adult Patient {i}", "1980-06-01", 'M' if i%2==0 else 'F', "Office Block B"
+                ))
+
+            # Group 3: Youth (Age 20) - 17 people
+            # IDs 41-57. Born 2005.
+            for i in range(41, 58):
+                patients_data.append((
+                    i, f"0012005000{i:02d}", f"Youth Patient {i}", "2005-06-01", 'M' if i%2==0 else 'F', "School C"
+                ))
+
+            # Group 4: Infant (Age 1) - Only 3 people
+            # IDs 58-60. Born 2025.
+            for i in range(58, 61):
+                patients_data.append((
+                   i, f"0012025000{i:02d}", f"Infant Patient {i}", "2025-01-01", 'M' if i%2==0 else 'F', "Nursery D"
                 ))
             
             cursor.executemany("INSERT INTO patients (patient_id, national_id, full_name, dob, gender, address) VALUES (%s, %s, %s, %s, %s, %s)", patients_data)

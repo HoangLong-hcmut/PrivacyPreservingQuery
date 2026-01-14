@@ -210,7 +210,7 @@ if __name__ == "__main__":
     from src.pipeline.privacy_guard import PrivacyViolationException
     from src.pipeline.budget import BudgetExhaustedException
 
-    parser = argparse.ArgumentParser(description="DataSHIELD Secure Query Interface - Privacy-Preserving SQL Execution Engine")
+    parser = argparse.ArgumentParser(description="Privacy Preserving SQL Execution Engine")
     parser.add_argument("--user_id", type=str, default="cli_user", help="User (National) ID (default: cli_user)")
     parser.add_argument("--query", type=str, help="SQL Query to execute (if not provided, enters interactive mode)")
     parser.add_argument("--epsilon", type=float, default=1.0, help="Privacy Loss Budget (epsilon) cost (default: 1.0)")
@@ -224,8 +224,8 @@ if __name__ == "__main__":
             response = middleware.process_query(args.query, args.user_id, epsilon_cost=args.epsilon)
             
             print("-" * 30)
-            print("PASSED")
-            print("-" * 30)
+            print(f"Executed Query: {response['executed_query']}")
+            print(f"Privacy Budget Cost (Epsilon): {response['epsilon_used']}")
             print(f"Result:         {response['result']}")
             print("-" * 30)
         except Exception as e:
@@ -235,7 +235,7 @@ if __name__ == "__main__":
 
     # Interactive Mode (Fallback)
     print("="*50)
-    print("      DataSHIELD Privacy Middleware CLI      ")
+    print("      Privacy Preserving Query Interface CLI      ")
     print("="*50)
     print("Type 'exit' or 'quit' to stop.")
     
@@ -246,7 +246,7 @@ if __name__ == "__main__":
         try:
             # Check remaining budget directly from DB
             remaining = budget_tracker.get_budget(current_user)
-            print(f"\n[User: {current_user}] Budget Remaining: {remaining:.2f}")
+            print(f"\n[User: {current_user}] | Budget Remaining: {remaining:.2f} | Privacy Budget Cost per Query: {args.epsilon}")
             
             query = input("SQL > ").strip()
             
@@ -256,32 +256,38 @@ if __name__ == "__main__":
                 
             if not query:
                 continue
-                
-            if query.startswith("user:"):
-                current_user = query.split(":")[1].strip()
-                print(f"Switched to user: {current_user}")
+
+            # Support epsilon change in interactive mode
+            current_epsilon = args.epsilon
+            if query.startswith("epsilon:"):
+                try:
+                    val = float(query.split(":")[1].strip())
+                    if val > 0:
+                        args.epsilon = val
+                        print(f"Privacy Budget Cost (Epsilon) updated to: {args.epsilon}")
+                    else:
+                        print("(!) Epsilon must be positive.")
+                except ValueError:
+                    print("(!) Invalid format. Example 'epsilon: 1.0'")
                 continue
 
             # Execute
             try:
                 # We use the middleware directly to get detailed response
-                response = middleware.process_query(query, current_user, epsilon_cost=args.epsilon)
+                response = middleware.process_query(query, current_user, epsilon_cost=current_epsilon)
                 
                 print("-" * 30)
-                print("PASSED")
-                print("-" * 30)
-                print(f"Original Query: {response['original_query']}")
                 print(f"Executed Query: {response['executed_query']}")
+                print(f"Privacy Budget Cost (Epsilon): {response['epsilon_used']}")
                 print(f"Result:         {response['result']}")
-                print(f"Cost (Epsilon): {response['epsilon_used']}")
                 print("-" * 30)
                 
             except SecurityException as e:
-                print(f"(!) BLOCKED [Security]: {e}")
+                print(f"(!) BLOCKED: {e}")
             except PrivacyViolationException as e:
-                print(f"(!) BLOCKED [Privacy]: {e}")
+                print(f"(!) BLOCKED: {e}")
             except BudgetExhaustedException as e:
-                print(f"(!) BLOCKED [Budget]: {e}")
+                print(f"(!) BLOCKED: {e}")
             except Exception as e:
                 print(f"(!) ERROR: {e}")
                 

@@ -9,7 +9,7 @@ MOCK_PATIENTS = [
         'patient_id': i, 
         'national_id': f"{i:012d}",
         'full_name': f"Patient {i}",
-        'dob': date(1980, 1, 1), # Dummy DOB
+        'dob': date(1980, 1, 1),
         'gender': 'M' if i % 2 == 0 else 'F',
         'address': '123 Nguyen Hue'
     } 
@@ -92,11 +92,11 @@ def test_verify_sensitivity_bounds(mock_db, metrics_recorder):
     
     original_data = mock_db.patients.copy()
     
+    # 1. Run on D
+    mock_db.patients = original_data
+    res_d = mock_db.execute_query(query)[0]['COUNT(*)']
+
     for _ in range(n_iterations):
-        # 1. Run on D
-        mock_db.patients = original_data.copy()
-        res_d = mock_db.execute_query(query)[0]['COUNT(*)']
-        
         # 2. Create Neighbor D' (remove one random record)
         if not original_data:
             break
