@@ -34,6 +34,7 @@ def seed_database():
                     national_id CHAR(12) UNIQUE,
                     full_name VARCHAR(100),
                     dob DATE,
+                    age INT GENERATED ALWAYS AS (TIMESTAMPDIFF(YEAR, dob, '2026-01-01')) VIRTUAL,
                     gender VARCHAR(10),
                     address VARCHAR(255),
                     specialization VARCHAR(100),
@@ -48,6 +49,7 @@ def seed_database():
                     national_id CHAR(12) UNIQUE,
                     full_name VARCHAR(100),
                     dob DATE,
+                    age INT GENERATED ALWAYS AS (TIMESTAMPDIFF(YEAR, dob, '2026-01-01')) VIRTUAL,
                     gender VARCHAR(10),
                     address VARCHAR(255)
                 )
@@ -67,7 +69,6 @@ def seed_database():
             """)
             
             # Seed Staff
-            # format: id, role, nid, name, dob, gender, address, spec, budget
             staff_data = [
                 (1, 'doctor', '001080000001', 'Nguyen Van Minh', '1980-01-15', 'M', '123 Le Loi, Hanoi', 'Cardiology', 10.0),
                 (2, 'employee', '001082000002', 'Tran Thi Mai', '1982-05-20', 'F', '456 Nguyen Hue, HCM', 'Receptionist', 5.0),
@@ -77,10 +78,10 @@ def seed_database():
                 (6, 'employee', '001090000006', 'Nguyen Thi Hoa', '1990-12-12', 'F', '888 Lang, Hanoi', 'Cashier', 5.0),
                 (7, 'employee', '001092000007', 'Vu Van Nam', '1992-06-15', 'M', '222 Tay Son, Hanoi', 'Security', 2.0),
                 (8, 'doctor', '001078000008', 'Do Lan Huong', '1978-04-30', 'F', '101 Kim Ma, Hanoi', 'Pediatrics', 10.0),
-                (9, 'accounting', '001086000009', 'Le Thi Thu', '1986-07-20', 'F', '999 Giang Vo, Hanoi', 'Accountant', 5.0)
+                (9, 'employee', '001086000009', 'Le Thi Thu', '1986-07-20', 'F', '999 Giang Vo, Hanoi', 'Accountant', 5.0)
             ]
             
-            cursor.executemany("INSERT INTO staff VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", staff_data)
+            cursor.executemany("INSERT INTO staff (staff_id, role, national_id, full_name, dob, gender, address, specialization, privacy_budget) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", staff_data)
             
             # Seed Patients
             patients_data = [
@@ -96,13 +97,8 @@ def seed_database():
                 (10, '001170000010', 'Ngo Thi K', '1970-10-10', 'F', '010 Nguyen Chi Thanh, Hanoi')
             ]
             
-            # Generate extra patients to satisfy cohort size checks (need > 10 for some queries)
-            # We need patients born before 1975 for the test query "dob < '1975-01-01'"
             for i in range(11, 60):
-                # Alternating gender
                 gender = 'M' if i % 2 == 0 else 'F'
-                # Year: 1950 + (i % 40) -> 1950 to 1990. 
-                # Many will be < 1975.
                 year = 1950 + (i % 40)
                 dob = f"{year}-01-01"
                 patients_data.append((
@@ -114,7 +110,7 @@ def seed_database():
                     f"{i} Random St"
                 ))
             
-            cursor.executemany("INSERT INTO patients VALUES (%s, %s, %s, %s, %s, %s)", patients_data)
+            cursor.executemany("INSERT INTO patients (patient_id, national_id, full_name, dob, gender, address) VALUES (%s, %s, %s, %s, %s, %s)", patients_data)
             
             # Seed Diagnoses
             diagnoses_data = [

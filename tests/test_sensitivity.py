@@ -123,5 +123,4 @@ def test_verify_sensitivity_bounds(mock_db, metrics_recorder):
     print(f"\nMax Empirical Sensitivity: {max_empirical_sensitivity}")
     print(f"Theoretical Sensitivity: {theoretical_sensitivity}")
     
-    assert max_empirical_sensitivity <= theoretical_sensitivity, \
-        f"Privacy Violation: Empirical sensitivity {max_empirical_sensitivity} > Theoretical {theoretical_sensitivity}"
+    assert max_empirical_sensitivity <= theoretical_sensitivity, f"Privacy Violation: Empirical sensitivity {max_empirical_sensitivity} > Theoretical {theoretical_sensitivity}"
