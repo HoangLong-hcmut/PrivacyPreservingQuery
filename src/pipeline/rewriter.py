@@ -65,23 +65,34 @@ def generalize_filters(sql: str) -> str:
         return sql
         
     def transformer(node):
-        if isinstance(node, exp.EQ):
+        if isinstance(node, (exp.EQ, exp.LT, exp.LTE, exp.GT, exp.GTE)):
             col = node.left if isinstance(node.left, exp.Column) else node.right
             val = node.right if isinstance(node.left, exp.Column) else node.left
             
-            if isinstance(col, exp.Column) and (col.name.lower() == "age" or col.name.lower() == "privacy_budget"):
+            if isinstance(col, exp.Column) and (col.name.lower() in ["age", "privacy_budget"]):
                 try:
                     # Parse value
                     age_val = int(str(val))
-                    # Create bucket
-                    lower = (age_val // 10) * 10
-                    upper = lower + 10
                     
-                    new_expr = exp.And(
-                        this=exp.GTE(this=col.copy(), expression=exp.Literal(this=str(lower), is_string=False)),
-                        expression=exp.LT(this=col.copy(), expression=exp.Literal(this=str(upper), is_string=False))
-                    )
-                    return new_expr
+                    # 1. Handle Equality (=): Convert to Bucket Range [x, x+10)
+                    if isinstance(node, exp.EQ):
+                        lower = (age_val // 10) * 10
+                        upper = lower + 10
+                        return exp.And(
+                            this=exp.GTE(this=col.copy(), expression=exp.Literal(this=str(lower), is_string=False)),
+                            expression=exp.LT(this=col.copy(), expression=exp.Literal(this=str(upper), is_string=False))
+                        )
+                    
+                    # 2. Handle Less Than (<, <=): Round Upper Bound UP to nearest 10
+                    elif isinstance(node, (exp.LT, exp.LTE)):
+                        upper = ((age_val // 10) + 1) * 10
+                        return exp.LT(this=col.copy(), expression=exp.Literal(this=str(upper), is_string=False))
+
+                    # 3. Handle Greater Than (>, >=): Round Lower Bound DOWN to nearest 10
+                    elif isinstance(node, (exp.GT, exp.GTE)):
+                        lower = (age_val // 10) * 10
+                        return exp.GTE(this=col.copy(), expression=exp.Literal(this=str(lower), is_string=False))
+
                 except ValueError:
                     pass
         return node
