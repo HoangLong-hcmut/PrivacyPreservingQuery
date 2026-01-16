@@ -20,7 +20,7 @@ def test_measure_utility_loss(budget_tracker, metrics_recorder):
     n_iterations = 100
     
     # Increase budget to support multiple iterations
-    execute_query("UPDATE staff SET privacy_budget = 1000.0 WHERE national_id = %s", (user_id,))
+    execute_query("UPDATE staffs SET privacy_budget = 1000.0 WHERE national_id = %s", (user_id,))
     
     with pytest.MonkeyPatch.context() as m:
         m.setattr("src.main.budget_tracker", budget_tracker)

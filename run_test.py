@@ -35,6 +35,11 @@ def generate_report():
             "attacker_simulations": {
                 "exfiltration_averaging_defense": metrics.get('averaging_defense_status', 'UNKNOWN'),
                 "singling_out_prevention": metrics.get('singling_out_status', 'UNKNOWN')
+            },
+            "system_performance": {
+                "avg_raw_execution_ms": metrics.get('perf_avg_raw_ms'),
+                "avg_secure_execution_ms": metrics.get('perf_avg_secure_ms'),
+                "overhead_latency_factor": metrics.get('perf_overhead_factor')
             }
         }
 

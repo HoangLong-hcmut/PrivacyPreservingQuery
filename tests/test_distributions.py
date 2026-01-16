@@ -20,14 +20,14 @@ def test_validate_laplace_distribution(budget_tracker, metrics_recorder):
     samples = []
     
     # Ensure sufficient budget
-    execute_query("UPDATE staff SET privacy_budget = 1000.0 WHERE national_id = %s", (user_id,))
+    execute_query("UPDATE staffs SET privacy_budget = 1000.0 WHERE national_id = %s", (user_id,))
     
     with pytest.MonkeyPatch.context() as m:
         m.setattr("src.main.budget_tracker", budget_tracker)
         
         # Mock post-processing to test raw continuous Laplace distribution (disabling rounding)
         with m.context() as m2:
-            m2.setattr("src.pipeline.dp_engine.post_process_result", lambda val, type: val)
+            m2.setattr("src.pipeline.dp_engine.post_process_result", lambda val, type, col=None: val)
             
             for _ in range(n_samples):
                 result = execute_secure_query(query, user_id, epsilon)

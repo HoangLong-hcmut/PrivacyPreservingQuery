@@ -26,9 +26,9 @@ def seed_database():
             cursor.execute("CREATE DATABASE hospital_db")
             cursor.execute("USE hospital_db")
             
-            # Create Staff Table
+            # Create Staffs Table
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS staff (
+                CREATE TABLE IF NOT EXISTS staffs (
                     staff_id INT PRIMARY KEY,
                     role VARCHAR(50),
                     national_id CHAR(12) UNIQUE,
@@ -64,12 +64,12 @@ def seed_database():
                     disease_name VARCHAR(100),
                     visit_date DATE,
                     FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
-                    FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
+                    FOREIGN KEY (staff_id) REFERENCES staffs(staff_id)
                 )
             """)
             
-            # Seed Staff
-            staff_data = [
+            # Seed Staffs
+            staffs_data = [
                 (1, 'doctor', '001080000001', 'Nguyen Van Minh', '1980-01-15', 'M', '123 Le Loi, Hanoi', 'Cardiology', 50.0),
                 (2, 'employee', '001082000002', 'Tran Thi Mai', '1982-05-20', 'F', '456 Nguyen Hue, HCM', 'Accountant', 5.0),
                 (3, 'researcher', '001075000003', 'Le Van Hung', '1975-11-10', 'M', '789 Tran Hung Dao, Da Nang', 'Data Science', 20.0),
@@ -81,7 +81,7 @@ def seed_database():
                 (9, 'employee', '001086000009', 'Le Thi Thu', '1986-07-20', 'F', '999 Giang Vo, Hanoi', 'Accountant', 5.0)
             ]
             
-            cursor.executemany("INSERT INTO staff (staff_id, role, national_id, full_name, dob, gender, address, specialization, privacy_budget) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", staff_data)
+            cursor.executemany("INSERT INTO staffs (staff_id, role, national_id, full_name, dob, gender, address, specialization, privacy_budget) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", staffs_data)
             
             # Seed Patients
             patients_data = []

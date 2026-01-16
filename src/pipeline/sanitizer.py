@@ -1,7 +1,7 @@
 import sqlglot
 from sqlglot import exp
 
-ALLOWED_TABLES = {'patients', 'diagnoses', 'staff'} # Known system schema
+ALLOWED_TABLES = {'patients', 'diagnoses', 'staffs'} # Known system schema
 ALLOWED_OPERATORS = {exp.EQ, exp.GT, exp.LT, exp.GTE, exp.LTE, exp.And, exp.Or, exp.Paren}
 ALLOWED_AGGREGATES = {exp.Count, exp.Sum, exp.Min, exp.Max, exp.Avg}
 
@@ -13,17 +13,17 @@ ROLE_POLICIES = {
         "allow_where": True
     },
     "researcher": {
-        "allowed_tables": {"patients", "diagnoses", "staff"},
+        "allowed_tables": {"patients", "diagnoses", "staffs"},
         "blocked_columns": {"full_name", "address", "national_id", "patient_id", "staff_id", "privacy_budget"},
         "allow_where": True 
     },
     "manager": {
-        "allowed_tables": {"patients", "diagnoses", "staff"},
+        "allowed_tables": {"patients", "diagnoses", "staffs"},
         "blocked_columns": set(),
         "allow_where": True 
     },
     "accountant": {
-        "allowed_tables": {"staff"},
+        "allowed_tables": {"staffs"},
         "blocked_columns": {"staff_id", "specialization", "privacy_budget"},
         "allow_where": True 
     },

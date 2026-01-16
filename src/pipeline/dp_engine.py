@@ -26,9 +26,9 @@ def add_noise(value: float, sensitivity: float, epsilon: float) -> float:
     noise = np.random.laplace(loc=0.0, scale=scale)
     return value + noise
 
-def post_process_result(noisy_value: float, original_type: str) -> float:
+def post_process_result(noisy_value: float, original_type: str, column_name: str = None) -> float:
     """
-    Rounds and clamps the result.
+    Rounds and clamps the result based on query type and attribute type.
     """
     result = noisy_value
     # Clamping
@@ -36,8 +36,21 @@ def post_process_result(noisy_value: float, original_type: str) -> float:
         result = 0.0
     
     original_type = original_type.upper()
-    if original_type == "COUNT":
-        # Rounding
-        result = int(np.round(result))
     
+    # 1. COUNT is always integer
+    if original_type == "COUNT":
+        return int(np.round(result))
+
+    # 2. Heuristic for Integer Attributes (SUM, MIN, MAX)
+    is_integer_col = False
+    if column_name:
+        col = column_name.lower().strip()
+        # List of known integer columns from schema
+        if col in ["age", "staff_id", "patient_id", "diagnosis_id"]:
+            is_integer_col = True
+            
+    if is_integer_col and original_type in ["SUM", "MIN", "MAX"]:
+        return int(np.round(result))
+    
+    # 3. Default: Float (for AVG, or float columns like privacy_budget)
     return result

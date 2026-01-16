@@ -18,7 +18,7 @@ def rewrite_for_count(sql: str) -> str:
     
     # Map tables to their sensitive entity identifier
     id_map = {
-        "staff": "staff_id",
+        "staffs": "staff_id",
         "patients": "patient_id",
         "diagnoses": "patient_id"
     }

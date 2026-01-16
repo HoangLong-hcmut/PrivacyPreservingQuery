@@ -16,7 +16,7 @@ MOCK_PATIENTS = [
     for i in range(1, 1001)
 ]
 
-MOCK_STAFF = [
+MOCK_STAFFS = [
     {
         'staff_id': i,
         'role': 'doctor',
@@ -45,7 +45,7 @@ MOCK_DIAGNOSES = [
 class MockDatabase:
     def __init__(self):
         self.patients = MOCK_PATIENTS.copy()
-        self.staff = MOCK_STAFF.copy()
+        self.staffs = MOCK_STAFFS.copy()
         self.diagnoses = MOCK_DIAGNOSES.copy()
 
     def execute_query(self, sql, params=None):

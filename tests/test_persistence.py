@@ -1,4 +1,5 @@
 import pytest
+import time
 from src.pipeline.budget import BudgetAccountant, BudgetExhaustedException
 from src.db_connector import execute_query
 from src.main import execute_secure_query
@@ -14,7 +15,7 @@ def clean_db_budget():
     # Reset budgets to 10.0 for all test users
     all_test_ids = [DOCTOR_ID, RESEARCHER_ID, ACCOUNTING_ID, ANOTHER_DOCTOR_ID]
     placeholders = ', '.join(['%s'] * len(all_test_ids))
-    execute_query(f"UPDATE staff SET privacy_budget = 10.0 WHERE national_id IN ({placeholders})", tuple(all_test_ids))
+    execute_query(f"UPDATE staffs SET privacy_budget = 10.0 WHERE national_id IN ({placeholders})", tuple(all_test_ids))
 
 
 def test_persistence_db_update(clean_db_budget):
@@ -29,7 +30,7 @@ def test_persistence_db_update(clean_db_budget):
     acc.consume_budget(user_id, 2.5)
     
     # Check DB directly
-    rows = execute_query("SELECT privacy_budget FROM staff WHERE national_id = %s", (user_id,))
+    rows = execute_query("SELECT privacy_budget FROM staffs WHERE national_id = %s", (user_id,))
     new_budget = float(rows[0]['privacy_budget'])
     assert abs(new_budget - 7.5) < 0.1
     
@@ -77,7 +78,7 @@ def test_budget_accounting(budget_tracker):
     epsilon_cost = 1.0
     
     # Set known budget
-    execute_query("UPDATE staff SET privacy_budget = 5.0 WHERE national_id = %s", (user_id,))
+    execute_query("UPDATE staffs SET privacy_budget = 5.0 WHERE national_id = %s", (user_id,))
     
     with pytest.MonkeyPatch.context() as m:
         m.setattr("src.main.budget_tracker", budget_tracker)
@@ -85,6 +86,7 @@ def test_budget_accounting(budget_tracker):
         # Run 5 queries
         for i in range(5):
             execute_secure_query(query, user_id, epsilon_cost)
+            time.sleep(0.1) # Wait for async budget update
             expected_remaining = 5.0 - (i + 1) * epsilon_cost
             current_remaining = budget_tracker.get_budget(user_id)
             assert abs(current_remaining - expected_remaining) < 1e-9

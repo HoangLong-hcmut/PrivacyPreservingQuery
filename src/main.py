@@ -1,8 +1,9 @@
 import sqlglot
 from sqlglot import exp
 from src.pipeline import sanitizer, rewriter, privacy_guard, dp_engine, budget
-from src.db_connector import execute_query
+from src.db_connector import execute_query, UsePersistentConnection
 import sys
+import threading
 
 # Global budget tracker instance
 budget_tracker = budget.BudgetAccountant()
@@ -45,6 +46,28 @@ class PrivacyMiddleware:
                 return "AVG"
                 
         return "UNKNOWN"
+
+    def _get_target_column(self, parsed_query) -> str:
+        """
+        Extracts the name of the column being aggregated.
+        """
+        expressions = parsed_query.expressions
+        if not expressions:
+            return None
+        
+        first_expr = expressions[0]
+        
+        # Unwrap Alias
+        if isinstance(first_expr, exp.Alias):
+            first_expr = first_expr.this
+            
+        # Check aggregates
+        if isinstance(first_expr, (exp.Count, exp.Sum, exp.Min, exp.Max, exp.Avg)):
+            col_node = first_expr.find(exp.Column)
+            if col_node:
+                return col_node.name
+        
+        return None
 
     def _handle_avg_query(self, target_query: str, user_id: str, epsilon_cost: float):
         """
@@ -108,7 +131,7 @@ class PrivacyMiddleware:
 
     def _get_role(self, user_id: str) -> str:
         try:
-            res = execute_query("SELECT role, specialization FROM staff WHERE national_id=%s", (user_id,))
+            res = execute_query("SELECT role, specialization FROM staffs WHERE national_id=%s", (user_id,))
             if not res:
                 return "default"
             
@@ -135,56 +158,69 @@ class PrivacyMiddleware:
         """
         Executes the privacy pipeline: validation -> accounting -> rewriting -> k-anonymity -> differential privacy.
         """
-        # 0. Get Role
-        user_role = self._get_role(user_id)
+        with UsePersistentConnection():
+            # 0. Get Role
+            user_role = self._get_role(user_id)
 
-        # 1. Validation: Whitelist checks (schema, attributes, predicates)
-        sanitizer.validate_query(user_query, user_role)
+            # 1. Validation: Whitelist checks (schema, attributes, predicates)
+            sanitizer.validate_query(user_query, user_role)
 
-        # 2. Budget Check: Verify sufficiency before processing
-        self.budget_accountant.check(user_id, epsilon_cost)
+            # 2. Budget Check: Verify sufficiency before processing
+            self.budget_accountant.check(user_id, epsilon_cost)
 
-        # 3. Rewriting: Generalization and Aggregation Enforcement
-        generalized_query = rewriter.generalize_filters(user_query)
-        target_query = rewriter.enforce_aggregation(generalized_query)
-        
-        # 4. Cohort Analysis: Check k-Anonymity (k=5)
-        if privacy_guard.check_cohort_violation(target_query):
-            raise privacy_guard.PrivacyViolationException("Query violates cohort size requirements (k=5).")
+            # 3. Rewriting: Generalization and Aggregation Enforcement
+            generalized_query = rewriter.generalize_filters(user_query)
+            target_query = rewriter.enforce_aggregation(generalized_query)
+            
+            # 4. Cohort Analysis: Check k-Anonymity (k=5)
+            if privacy_guard.check_cohort_violation(target_query):
+                raise privacy_guard.PrivacyViolationException("Query violates cohort size requirements (k=5).")
 
-        # Check for AVG special handling
-        parsed_check = sqlglot.parse_one(target_query)
-        if self._detect_query_type(parsed_check) == "AVG":
-            result = self._handle_avg_query(target_query, user_id, epsilon_cost)    
-            result["original_query"] = user_query
-            return result
+            # Check for AVG special handling
+            parsed_target = sqlglot.parse_one(target_query)
+            query_type = self._detect_query_type(parsed_target)
+            target_col = self._get_target_column(parsed_target)
 
-        # 5. Differential Privacy Execution
-        raw_results = execute_query(target_query)
-        
-        # Extract scalar value
-        true_val = float(list(raw_results[0].values())[0]) if raw_results else 0.0
+            # Handle AVG
+            if query_type == "AVG":
+                result = self._handle_avg_query(target_query, user_id, epsilon_cost)    
+                result["original_query"] = user_query
+                return result
 
-        # Calculate Sensitivity
-        parsed = sqlglot.parse_one(target_query)
-        query_type = self._detect_query_type(parsed)
-        bounds = (0, 100) if query_type in ['SUM', 'MIN', 'MAX'] else None
-        sensitivity = dp_engine.calculate_sensitivity(query_type, bounds)
+            # 5. Differential Privacy Execution
+            raw_results = execute_query(target_query)
+            
+            # Extract scalar value
+            true_val = float(list(raw_results[0].values())[0]) if raw_results else 0.0
 
-        # Inject Laplace Noise
-        final_val = dp_engine.add_noise(true_val, sensitivity, epsilon_cost)
-        final_val = dp_engine.post_process_result(final_val, query_type)
+            # Calculate Sensitivity
+            bounds = (0, 100) if query_type in ['SUM', 'MIN', 'MAX'] else None
+            sensitivity = dp_engine.calculate_sensitivity(query_type, bounds)
 
-        # Commit Budget deduction
-        self.budget_accountant.consume_budget(user_id, epsilon_cost)
+            # Inject Laplace Noise
+            final_val = dp_engine.add_noise(true_val, sensitivity, epsilon_cost)
+            final_val = dp_engine.post_process_result(final_val, query_type, target_col)
 
-        return {
-            "status": "success",
-            "original_query": user_query,
-            "executed_query": target_query,
-            "result": final_val,
-            "epsilon_used": epsilon_cost
-        }
+            # 6. Budget Deduction: Commit asynchronously
+            def _async_commit():
+                try:
+                    execute_query(
+                        "UPDATE staffs SET privacy_budget = privacy_budget - %s WHERE national_id = %s", 
+                        (epsilon_cost, user_id), 
+                        force_new=True
+                    )
+                except Exception as e:
+                    print(f"Background Budget Update Failed: {e}")
+
+            threading.Thread(target=_async_commit, daemon=False).start()
+
+            return {
+                "status": "success",
+                "original_query": user_query,
+                "executed_query": target_query,
+                "result": final_val,
+                "epsilon_used": epsilon_cost
+            }
 
 # Initialize Middleware with the global tracker for test compatibility
 middleware = PrivacyMiddleware()

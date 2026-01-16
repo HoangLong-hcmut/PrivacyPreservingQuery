@@ -9,14 +9,14 @@ class BudgetAccountant:
 
     def get_budget(self, user_id: str) -> float:
         """
-        Retrieves the remaining budget from the staff table using National ID.
+        Retrieves the remaining budget from the staffs table using National ID.
         """
         try:
-            rows = execute_query("SELECT privacy_budget FROM staff WHERE national_id = %s", (user_id,))
+            rows = execute_query("SELECT privacy_budget FROM staffs WHERE national_id = %s", (user_id,))
             if rows:
                 return float(rows[0]['privacy_budget'])
             else:
-                print(f"Warning: User ID '{user_id}' not found in staff table.")
+                print(f"Warning: User ID '{user_id}' not found in staffs table.")
                 return 0.0
         except Exception as e:
             print(f"Warning: DB Error fetching budget for {user_id}: {e}")
@@ -38,10 +38,8 @@ class BudgetAccountant:
         """
         Deducts the specified cost from the user's budget in the database.
         """
-        self.check(user_id, cost)
-        
         try:
-            execute_query("UPDATE staff SET privacy_budget = privacy_budget - %s WHERE national_id = %s", (cost, user_id))
+            execute_query("UPDATE staffs SET privacy_budget = privacy_budget - %s WHERE national_id = %s", (cost, user_id))
 
         except Exception as e:
             print(f"Error updating budget for {user_id}: {e}")
