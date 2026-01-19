@@ -123,7 +123,7 @@ class PrivacyMiddleware:
 
         return {
             "status": "success",
-            "original_query": target_query, # Technically original was user_query
+            "original_query": target_query,
             "executed_query": dual_query,
             "result": final_avg,
             "epsilon_used": epsilon_cost,
