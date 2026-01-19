@@ -126,7 +126,8 @@ class PrivacyMiddleware:
             "original_query": target_query, # Technically original was user_query
             "executed_query": dual_query,
             "result": final_avg,
-            "epsilon_used": epsilon_cost
+            "epsilon_used": epsilon_cost,
+            "query_type": "AVG"
         }
 
     def _get_role(self, user_id: str) -> str:
@@ -219,7 +220,8 @@ class PrivacyMiddleware:
                 "original_query": user_query,
                 "executed_query": target_query,
                 "result": final_val,
-                "epsilon_used": epsilon_cost
+                "epsilon_used": epsilon_cost,
+                "query_type": query_type
             }
 
 # Initialize Middleware with the global tracker for test compatibility
@@ -262,7 +264,17 @@ if __name__ == "__main__":
             print("-" * 30)
             print(f"Executed Query: {response['executed_query']}")
             print(f"Privacy Budget Cost (Epsilon): {response['epsilon_used']}")
-            print(f"Result:         {response['result']}")
+            
+            # Table Formatting
+            res_val = str(response['result'])
+            col_name = f"DP_{response.get('query_type', 'RESULT')}"
+            width = max(len(col_name), len(res_val)) + 4
+            
+            print(f"+{'-'*width}+")
+            print(f"| {col_name:<{width-2}} |")
+            print(f"+{'-'*width}+")
+            print(f"| {res_val:<{width-2}} |")
+            print(f"+{'-'*width}+")
             print("-" * 30)
         except Exception as e:
             print(f"(!) FAILED: {e}")
@@ -315,7 +327,17 @@ if __name__ == "__main__":
                 print("-" * 30)
                 print(f"Executed Query: {response['executed_query']}")
                 print(f"Privacy Budget Cost (Epsilon): {response['epsilon_used']}")
-                print(f"Result:         {response['result']}")
+                
+                # Table Formatting
+                res_val = str(response['result'])
+                col_name = f"DP_{response.get('query_type', 'RESULT')}"
+                width = max(len(col_name), len(res_val)) + 4
+
+                print(f"+{'-'*width}+")
+                print(f"| {col_name:<{width-2}} |")
+                print(f"+{'-'*width}+")
+                print(f"| {res_val:<{width-2}} |")
+                print(f"+{'-'*width}+")
                 print("-" * 30)
                 
             except SecurityException as e:
